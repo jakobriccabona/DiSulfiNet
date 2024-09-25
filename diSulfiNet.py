@@ -12,12 +12,15 @@ from sklearn.utils import shuffle
 from imblearn.over_sampling import RandomOverSampler 
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.model_selection import train_test_split
+from tensorflow.keras.models import load_model
+
 
 import numpy as np
 import pandas as pd
 import random
 import glob
 import math
+import argparse
 
 def calculate_distance(res1, res2):
     coord1 = pose.residue(res1).xyz("CA")
@@ -35,10 +38,16 @@ data_maker = mg.DataMaker(decorators=decorators,
                            max_residues=15,
                            nbr_distance_cutoff_A=10.0)
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-i','--input', type=str, required=True, help='input file (PDB format)')
+parser.add_argument('-o', '--output', type=str, default='out.csv', help='output file name. default=out.csv')
+args = parser.parse_args()
+
 #TO DO: load the model here
-pdb = "" #add the argparser
+pdb = args.input
 pose = pyrosetta.pose_from_pdb(pdb)
 wrapped_pose = mg.RosettaPoseWrapper(pose)
+model = load_model('disulfinet3d.keras')
 
 pairs = []
 
@@ -59,5 +68,11 @@ for i in pairs:
     As_.append(A)
     Es_.append(E)
 
+Xs_ = np.asarray(Xs_)
+As_ = np.asarray(As_)
+Es_ = np.asarray(Es_)
+
+y_pred = model.predict([Xs_, As_, Es_])
+
 df = pd.DataFrame({ 'disulfide': pairs, 'probability': y_pred.flatten()})
-#TO DO here: save the DataFrame as .csv
+df.to_csv(args.output, index=False)
