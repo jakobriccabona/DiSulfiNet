@@ -5,7 +5,7 @@ from pyrosetta.rosetta.core.scoring import ScoreType
 import menten_gcn as mg
 import menten_gcn.decorators as decs
 
-from spektral.layers import *
+from spektral.layers import ECCConv, GlobalSumPool
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 from sklearn.utils import shuffle
@@ -47,7 +47,8 @@ args = parser.parse_args()
 pdb = args.input
 pose = pyrosetta.pose_from_pdb(pdb)
 wrapped_pose = mg.RosettaPoseWrapper(pose)
-model = load_model('disulfinet3d.keras')
+custom_objects = {'ECCConv': ECCConv, 'GlobalSumPool': GlobalSumPool}
+model = load_model('disulfinet3d.keras', custom_objects)
 
 pairs = []
 
