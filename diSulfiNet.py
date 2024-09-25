@@ -29,7 +29,8 @@ def calculate_distance(res1, res2):
                          (coord1[2] - coord2[2])**2)
     return distance
 
-decorators = [decs.CBCB_dist(use_nm=True), decs.Rosetta_Ref2015_TwoBodyEneriges(individual=True, score_types=[ScoreType.fa_rep, ScoreType.fa_atr, ScoreType.fa_sol, ScoreType.lk_ball_wtd, ScoreType.fa_elec, ScoreType.hbond_sr_bb, ScoreType.hbond_lr_bb, ScoreType.hbond_bb_sc, ScoreType.hbond_sc])]
+decorators = [decs.CBCB_dist(use_nm=True),
+              decs.Rosetta_Ref2015_TwoBodyEneriges(individual=True, score_types=[ScoreType.fa_rep, ScoreType.fa_atr, ScoreType.fa_sol, ScoreType.lk_ball_wtd, ScoreType.fa_elec, ScoreType.hbond_sr_bb, ScoreType.hbond_lr_bb, ScoreType.hbond_bb_sc, ScoreType.hbond_sc])]
 data_maker = mg.DataMaker(decorators=decorators,
                            edge_distance_cutoff_A=8.0,
                            max_residues=15,
@@ -60,11 +61,13 @@ Xs_ = []
 As_ = []
 Es_ = []
 
+print('Building Graphs...')
 for i in pairs:
     X, A, E, resids = data_maker.generate_input( wrapped_pose, i)
     Xs_.append(X)
     As_.append(A)
     Es_.append(E)
+print('Building finished!')
 
 Xs_ = np.asarray(Xs_)
 As_ = np.asarray(As_)
@@ -72,5 +75,21 @@ Es_ = np.asarray(Es_)
 
 y_pred = model.predict([Xs_, As_, Es_])
 
-df = pd.DataFrame({ 'disulfide': pairs, 'probability': y_pred.flatten()})
+#get chain & position information from pairs
+pdb_numbering = []
+chains = []
+for i in pairs:
+    _1 = pose.pdb_info().number(int(i[0]))
+    _2 = pose.pdb_info().number(int(i[1]))
+    pdb_numbering.append([_1, _2])
+    _1 = pose.pdb_info().chain(int(i[0]))
+    _2 = pose.pdb_info().chain(int(i[1]))
+    chains.append([_1, _2])
+
+
+df = pd.DataFrame({'chains': chains,
+                   'pdb numbering': pdb_numbering,
+                   'rosetta numbering': pairs,
+                   'probability': y_pred.flatten()
+                   })
 df.to_csv(args.output, index=False)
