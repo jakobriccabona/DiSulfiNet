@@ -8,9 +8,6 @@ import menten_gcn.decorators as decs
 from spektral.layers import ECCConv, GlobalSumPool
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
-from sklearn.utils import shuffle
-from imblearn.over_sampling import RandomOverSampler 
-from imblearn.under_sampling import RandomUnderSampler
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
 
