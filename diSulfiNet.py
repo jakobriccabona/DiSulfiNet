@@ -7,17 +7,15 @@ import menten_gcn.decorators as decs
 
 from spektral.layers import ECCConv, GlobalSumPool
 from tensorflow.keras.layers import *
-from tensorflow.keras.models import Model
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import load_model
 
 
 import numpy as np
 import pandas as pd
-import random
-import glob
 import math
 import argparse
+import multiprocessing as mp
 
 def calculate_distance(res1, res2):
     coord1 = pose.residue(res1).xyz("CA")
@@ -28,6 +26,15 @@ def calculate_distance(res1, res2):
                          (coord1[1] - coord2[1])**2 +
                          (coord1[2] - coord2[2])**2)
     return distance
+
+def build_graphs(wrapped_pose, pair):
+    # multiprocessing
+    X, A, E, resids = data_maker.generate_input( wrapped_pose, pair)
+    return X, A, E
+
+def build_graphs_wrapper(args):
+    wrapped_pose, pair = args
+    return build_graphs(wrapped_pose, pair)
 
 decorators = [decs.CBCB_dist(use_nm=True),
               decs.Rosetta_Ref2015_TwoBodyEneriges(individual=True, score_types=[ScoreType.fa_rep, ScoreType.fa_atr, ScoreType.fa_sol, ScoreType.lk_ball_wtd, ScoreType.fa_elec, ScoreType.hbond_sr_bb, ScoreType.hbond_lr_bb, ScoreType.hbond_bb_sc, ScoreType.hbond_sc])]
@@ -62,17 +69,16 @@ As_ = []
 Es_ = []
 
 print('Building Graphs...')
-for i in pairs:
-    X, A, E, resids = data_maker.generate_input( wrapped_pose, i)
-    Xs_.append(X)
-    As_.append(A)
-    Es_.append(E)
+with mp.Pool(processes=mp.cpu_count()) as pool:
+    X, A, E = pool.map(build_graphs_wrapper, [(wrapped_pose, pair) for pair in pairs])
+# TO DO
+# Collect the results from the pool
+Xs_.append(X)
+As_.append(A)
+Es_.append(E)
 print('Building finished!')
 
-Xs_ = np.asarray(Xs_)
-As_ = np.asarray(As_)
-Es_ = np.asarray(Es_)
-
+#prediction
 y_pred = model.predict([Xs_, As_, Es_])
 
 #get chain & position information from pairs
@@ -86,7 +92,7 @@ for i in pairs:
     _2 = pose.pdb_info().chain(int(i[1]))
     chains.append([_1, _2])
 
-
+#output
 df = pd.DataFrame({'chains': chains,
                    'pdb numbering': pdb_numbering,
                    'rosetta numbering': pairs,
