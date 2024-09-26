@@ -27,8 +27,8 @@ def calculate_distance(res1, res2):
                          (coord1[2] - coord2[2])**2)
     return distance
 
-def build_graphs(wrapped_pose, pair):
-    # multiprocessing
+def build_graphs(args):
+    wrapped_pose, pair = args
     X, A, E, resids = data_maker.generate_input( wrapped_pose, pair)
     return X, A, E
 
@@ -67,18 +67,22 @@ for i in range(1, pose.size() + 1):
 Xs_ = []
 As_ = []
 Es_ = []
+args = [(wrapped_pose, pair) for pair in pairs]
 
 print('Building Graphs...')
-with mp.Pool(processes=mp.cpu_count()) as pool:
-    X, A, E = pool.map(build_graphs_wrapper, [(wrapped_pose, pair) for pair in pairs])
-# TO DO
-# Collect the results from the pool
-Xs_.append(X)
-As_.append(A)
-Es_.append(E)
+with mp.Pool(processes=mp.cpu_count()) as p:
+    results = p.map(build_graphs, args)
+
+for result in results:
+    Xs_.append(result[0])
+    As_.append(result[1])
+    Es_.append(result[2])
 print('Building finished!')
 
 #prediction
+Xs_ = np.asarray(Xs_)
+As_ = np.asarray(As_)
+Es_ = np.asarray(Es_)
 y_pred = model.predict([Xs_, As_, Es_])
 
 #get chain & position information from pairs
