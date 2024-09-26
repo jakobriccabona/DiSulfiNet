@@ -6,6 +6,7 @@ import menten_gcn as mg
 import menten_gcn.decorators as decs
 
 from spektral.layers import *
+import tensorflow as tf
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 from sklearn.utils import shuffle
@@ -19,19 +20,29 @@ import random
 import glob
 import math
 
+
 data = np.load('graphs.npz')
 Xs = data['Xs']
 As = data['As']
 Es = data['Es']
 outs = data['outs']
 
+decorators = [decs.CBCB_dist(use_nm=True),
+              decs.Rosetta_Ref2015_TwoBodyEneriges(individual=True, score_types=[ScoreType.fa_rep, ScoreType.fa_atr, ScoreType.fa_sol, ScoreType.lk_ball_wtd, ScoreType.fa_elec, ScoreType.hbond_sr_bb, ScoreType.hbond_lr_bb, ScoreType.hbond_bb_sc, ScoreType.hbond_sc])]
+data_maker = mg.DataMaker(decorators=decorators,
+                           edge_distance_cutoff_A=8.0,
+                           max_residues=15,
+                           nbr_distance_cutoff_A=10.0)
+
 X_in, A_in, E_in = data_maker.generate_XAE_input_layers()
 
-L1 = ECCConv( 30, activation='relu' )([X_in, A_in, E_in])
+L1 = ECCConv(30, activation='relu')([X_in, A_in, E_in])
 L1_drop = Dropout(0.3)(L1)
-L2 = GlobalSumPool()(L1_drop)
-L3 = Flatten()(L2)
-output = Dense(1, name="out" , activation="sigmoid")(L3)
+L2 = ECCConv(30, activation='relu')([L1_drop, A_in, E_in])
+L2_drop = Dropout(0.3)(L2)
+L3 = GlobalSumPool()(L2_drop)
+L4 = Flatten()(L3)
+output = Dense(1, name="out", activation="sigmoid")(L4)
 
 model = Model(inputs=[X_in,A_in,E_in], outputs=output)
 model.compile(optimizer='adam', loss='binary_crossentropy' )
@@ -62,5 +73,5 @@ E_reshaped, _ = ros.fit_resample(Es_reshaped, y_train)
 num_features = E_train.shape[1:]
 E_ros = E_reshaped.reshape(-1, *num_features)
 
-history = model.fit(x=[X_ros, A_ros, E_ros], y=y_ros, batch_size=200, epochs=100, validation_data=([X_val, A_val, E_val], y_val))
-model.save("disulfinet3d.keras")
+history = model.fit(x=[X_ros, A_ros, E_ros], y=y_ros, batch_size=1000, epochs=100, validation_data=([X_val, A_val, E_val], y_val))
+model.save("disulfinet3d-2.keras")
