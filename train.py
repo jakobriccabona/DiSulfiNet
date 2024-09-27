@@ -6,7 +6,7 @@ import menten_gcn as mg
 import menten_gcn.decorators as decs
 
 from spektral.layers import *
-import tensorflow as tf
+from keras.regularizers import l2
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 from sklearn.utils import shuffle
@@ -36,13 +36,18 @@ data_maker = mg.DataMaker(decorators=decorators,
 
 X_in, A_in, E_in = data_maker.generate_XAE_input_layers()
 
-L1 = ECCConv(30, activation='relu')([X_in, A_in, E_in])
-L1_drop = Dropout(0.3)(L1)
-L2 = ECCConv(30, activation='relu')([L1_drop, A_in, E_in])
-L2_drop = Dropout(0.3)(L2)
+edge_net = Dense(20, activation='relu')(E_in)
+L1 = ECCConv(15, activation=None, edge_network=edge_net)([X_in, A_in, E_in])
+L1_bn = BatchNormalization()(L1)
+L1_act = Activation('relu')(L1_bn)
+L1_drop = Dropout(0.2)(L1_act)
+L2 = ECCConv(15, activation=None)([L1_drop, A_in, E_in])
+L2_bn = BatchNormalization()(L2)
+L2_act = Activation('relu')(L2_bn)
+L2_drop = Dropout(0.2)(L2_act)
 L3 = GlobalSumPool()(L2_drop)
 L4 = Flatten()(L3)
-output = Dense(1, name="out", activation="sigmoid")(L4)
+output = Dense(1, name="out", activation="sigmoid", kernel_regularizer=l2(0.01))(L4)
 
 model = Model(inputs=[X_in,A_in,E_in], outputs=output)
 model.compile(optimizer='adam', loss='binary_crossentropy' )
@@ -73,5 +78,5 @@ E_reshaped, _ = ros.fit_resample(Es_reshaped, y_train)
 num_features = E_train.shape[1:]
 E_ros = E_reshaped.reshape(-1, *num_features)
 
-history = model.fit(x=[X_ros, A_ros, E_ros], y=y_ros, batch_size=1000, epochs=100, validation_data=([X_val, A_val, E_val], y_val))
-model.save("disulfinet3d-2.keras")
+history = model.fit(x=[X_ros, A_ros, E_ros], y=y_ros, batch_size=50, epochs=100, validation_data=([X_val, A_val, E_val], y_val))
+model.save("disulfinet3d-4.keras")

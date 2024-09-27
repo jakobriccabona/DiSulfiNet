@@ -32,8 +32,8 @@ def build_graphs(args):
     X, A, E, resids = data_maker.generate_input( wrapped_pose, pair)
     return X, A, E
 
-def build_graphs_wrapper(args):
-    wrapped_pose, pair = args
+def build_graphs_wrapper(arguments):
+    wrapped_pose, pair = arguments
     return build_graphs(wrapped_pose, pair)
 
 decorators = [decs.CBCB_dist(use_nm=True),
@@ -53,7 +53,7 @@ pdb = args.input
 pose = pyrosetta.pose_from_pdb(pdb)
 wrapped_pose = mg.RosettaPoseWrapper(pose)
 custom_objects = {'ECCConv': ECCConv, 'GlobalSumPool': GlobalSumPool}
-model = load_model('disulfinet3d.keras', custom_objects)
+model = load_model('disulfinet3d-3.keras', custom_objects)
 
 pairs = []
 
@@ -67,11 +67,11 @@ for i in range(1, pose.size() + 1):
 Xs_ = []
 As_ = []
 Es_ = []
-args = [(wrapped_pose, pair) for pair in pairs]
+arguments = [(wrapped_pose, pair) for pair in pairs]
 
 print('Building Graphs...')
 with mp.Pool(processes=mp.cpu_count()) as p:
-    results = p.map(build_graphs, args)
+    results = p.map(build_graphs, arguments)
 
 for result in results:
     Xs_.append(result[0])
