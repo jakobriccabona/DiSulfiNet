@@ -53,7 +53,7 @@ pdb = args.input
 pose = pyrosetta.pose_from_pdb(pdb)
 wrapped_pose = mg.RosettaPoseWrapper(pose)
 custom_objects = {'ECCConv': ECCConv, 'GlobalSumPool': GlobalSumPool}
-model = load_model('disulfinet3d-3.keras', custom_objects)
+model = load_model('disulfinet3d-4.keras', custom_objects)
 
 pairs = []
 
