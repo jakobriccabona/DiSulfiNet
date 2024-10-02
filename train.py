@@ -16,10 +16,6 @@ from sklearn.model_selection import train_test_split
 
 import numpy as np
 import pandas as pd
-import random
-import glob
-import math
-
 
 data = np.load('graphs.npz')
 Xs = data['Xs']
@@ -27,7 +23,7 @@ As = data['As']
 Es = data['Es']
 outs = data['outs']
 
-decorators = [decs.CBCB_dist(use_nm=True),
+decorators = [decs.trRosettaEdges(use_nm=True),
               decs.Rosetta_Ref2015_TwoBodyEneriges(individual=True, score_types=[ScoreType.fa_rep, ScoreType.fa_atr, ScoreType.fa_sol, ScoreType.lk_ball_wtd, ScoreType.fa_elec, ScoreType.hbond_sr_bb, ScoreType.hbond_lr_bb, ScoreType.hbond_bb_sc, ScoreType.hbond_sc])]
 data_maker = mg.DataMaker(decorators=decorators,
                            edge_distance_cutoff_A=8.0,
