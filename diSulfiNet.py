@@ -36,7 +36,7 @@ def build_graphs_wrapper(arguments):
     wrapped_pose, pair = arguments
     return build_graphs(wrapped_pose, pair)
 
-decorators = [decs.CBCB_dist(use_nm=True),
+decorators = [decs.trRosettaEdges(use_nm=True),
               decs.Rosetta_Ref2015_TwoBodyEneriges(individual=True, score_types=[ScoreType.fa_rep, ScoreType.fa_atr, ScoreType.fa_sol, ScoreType.lk_ball_wtd, ScoreType.fa_elec, ScoreType.hbond_sr_bb, ScoreType.hbond_lr_bb, ScoreType.hbond_bb_sc, ScoreType.hbond_sc])]
 data_maker = mg.DataMaker(decorators=decorators,
                            edge_distance_cutoff_A=8.0,
@@ -53,7 +53,7 @@ pdb = args.input
 pose = pyrosetta.pose_from_pdb(pdb)
 wrapped_pose = mg.RosettaPoseWrapper(pose)
 custom_objects = {'ECCConv': ECCConv, 'GlobalSumPool': GlobalSumPool}
-model = load_model('disulfinet3d-4.keras', custom_objects)
+model = load_model('disulfinet3d-new.keras', custom_objects)
 
 pairs = []
 
